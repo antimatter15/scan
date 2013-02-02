@@ -77,8 +77,8 @@ while True:
 		continue
 
 	year = time.strftime("%Y")
-	month = time.strftime("%b")
-	date = time.strftime("%d %b ")
+	month = time.strftime("%b %Y")
+	date = time.strftime("%d %b")
 	
 	if not os.path.exists(year):
 		os.makedirs(year)
@@ -86,5 +86,10 @@ while True:
 	if not os.path.exists(year + "/" + month):
 		os.makedirs(year + "/" + month)
 
-	im.save(year + "/" + date + ".jpg", "JPEG")
-	# minimized.save(year + "/" + date + "-diff", "JPEG")
+	last_invalid = 1
+	# todo: it'd be cool to have a binary-search-type super optimized
+	# thing, but well, that's not really necessary
+	while os.path.exists('%s/%s/%s %03d.jpg' % (year, month, date, last_invalid)):
+		last_invalid += 1
+
+	im.save('%s/%s/%s %03d.jpg' % (year, month, date, last_invalid), "JPEG")
