@@ -3,10 +3,12 @@ import sane
 import time
 import os
 import numpy
+from PIL import Image, ImageFilter
 
 # Yar 'MERCA
 mm_per_in = 25.40005
-
+blank = Image.open("blank.jpg")
+blank.filter(ImageFilter.BLUR)
 
 print sane.init()
 
@@ -36,13 +38,31 @@ while True:
 		continue	
 	print "Acquired Scanner", scanner
 	im = scanner.scan()
+	im.filter(ImageFilter.BLUR)
+
 	print "Acquired Output", im
 	year = time.strftime("%Y")
 	date = time.strftime("%d %b")
 	if not os.path.exists(year):
 		os.makedirs(year)
-	narwhal = numpy.array(im.histogram())
-	mean_color = numpy.average(range(0, 256), weights = narwhal)
-	# find da stdev
 	
+	# narwhal = numpy.array(im.histogram())
+	# mean = numpy.sum(numpy.dot(range(0, 256), narwhal)) / numpy.sum(narwhal)
+	# mean_square = numpy.sum(numpy.dot(numpy.square(range(0, 256)), narwhal)) / numpy.sum(narwhal)
+	# variance = mean_square - numpy.square(mean)
+	# print mean, mean_square, variance, numpy.sqrt(variance)
+	
+	# normal_hist = [numpy.exp(-numpy.square(x - mean)/(2 * variance)) / numpy.sqrt(2 * numpy.pi * variance) for x in range(0, 256)]
+
+	# normal_hist = numpy.array(blank.histogram())
+
+	# diff = narwhal - normal_hist
+	# print numpy.std(diff), numpy.mean(diff), numpy.sum(numpy.square(diff))
+	# print diff, narwhal, normal_hist
+
+	# find da stdev
+
+	diff = im - blank
+
 	im.save(year + "/" + date, "JPEG")
+	diff.save(year + "/" + date + "-diff", "JPEG")
