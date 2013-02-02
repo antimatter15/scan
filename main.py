@@ -1,28 +1,33 @@
+# Here be the configs!
+
+dimensions = (8.5, 11) # standard letter size paper
+resolution = 300 # 300dpi is good
+margins = 0.5 # half an inch, for placement errors, etc
+
 import serial
 import sane
 import time
 import os
 import numpy
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageChops
 
-# Yar 'MERCA
-mm_per_in = 25.40005
 blank = Image.open("blank.jpg")
 blank.filter(ImageFilter.BLUR)
+
+# Yar 'MERCA
+mm_per_in = 25.4000
 
 print sane.init()
 
 scanner = sane.open([id for (id, maker, model, desc) in sane.get_devices() if model == "LiDE 110"][0])
 
-print "Acquired Scanner", scanner.get_options()
-scanner.resolution = 300 # 300dpi
+print "Acquired Scanner", scanner
 
-# US standard letter
-scanner.br_x = mm_per_in * 8.5
-scanner.br_y = mm_per_in * 11
+scanner.resolution = resolution
+scanner.br_x = mm_per_in * dimensions[0]
+scanner.br_y = mm_per_in * dimensions[1]
 
 # print scanner.opt.keys()
-
 print scanner['resolution']
 print scanner['tl_x'] # zero
 print scanner['tl_y'] # zero
@@ -38,14 +43,10 @@ while True:
 		continue	
 	print "Acquired Scanner", scanner
 	im = scanner.scan()
-	im.filter(ImageFilter.BLUR)
+	blurred = im.filter(ImageFilter.BLUR)
 
 	print "Acquired Output", im
-	year = time.strftime("%Y")
-	date = time.strftime("%d %b")
-	if not os.path.exists(year):
-		os.makedirs(year)
-	
+
 	# narwhal = numpy.array(im.histogram())
 	# mean = numpy.sum(numpy.dot(range(0, 256), narwhal)) / numpy.sum(narwhal)
 	# mean_square = numpy.sum(numpy.dot(numpy.square(range(0, 256)), narwhal)) / numpy.sum(narwhal)
@@ -61,8 +62,29 @@ while True:
 	# print diff, narwhal, normal_hist
 
 	# find da stdev
+	(width, height) = blurred.size
+	n = int(margins * resolution) # half inch margins
+	diff = ImageChops.difference(blurred, blank).crop((n, n, width - n, height - n))
+	minimized = diff.filter(ImageFilter.MinFilter(3))
+	change = numpy.sum(minimized.histogram()[10:]) / float(width * height)
 
-	diff = im - blank
+	# this metric seems to have a pretty good differentiation boundary
+	# a mostly white sheet of paper with a few sketches scores 1e-2
+	# and blank scores between 1e-7 to 1e-6
 
-	im.save(year + "/" + date, "JPEG")
-	diff.save(year + "/" + date + "-diff", "JPEG")
+	if change < 0.001:
+		print "This appears to be a blank image", change
+		continue
+
+	year = time.strftime("%Y")
+	month = time.strftime("%b")
+	date = time.strftime("%d %b ")
+	
+	if not os.path.exists(year):
+		os.makedirs(year)
+	
+	if not os.path.exists(year + "/" + month):
+		os.makedirs(year + "/" + month)
+
+	im.save(year + "/" + date + ".jpg", "JPEG")
+	# minimized.save(year + "/" + date + "-diff", "JPEG")
