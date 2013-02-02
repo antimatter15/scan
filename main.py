@@ -17,6 +17,8 @@ blank.filter(ImageFilter.BLUR)
 # Yar 'MERCA
 mm_per_in = 25.4000
 
+print "Initializing SANE"
+
 print sane.init()
 
 scanner = sane.open([id for (id, maker, model, desc) in sane.get_devices() if model == "LiDE 110"][0])
@@ -86,10 +88,26 @@ while True:
 	if not os.path.exists(year + "/" + month):
 		os.makedirs(year + "/" + month)
 
-	last_invalid = 1
-	# todo: it'd be cool to have a binary-search-type super optimized
-	# thing, but well, that's not really necessary
-	while os.path.exists('%s/%s/%s %03d.jpg' % (year, month, date, last_invalid)):
-		last_invalid += 1
+	def fn(num):
+		return '%s/%s/%s %03d.jpg' % (year, month, date, num)
 
-	im.save('%s/%s/%s %03d.jpg' % (year, month, date, last_invalid), "JPEG")
+	imax = 1
+	# exponential backoff style
+	while os.path.exists(fn(imax)):
+		imax *= 2
+
+	if imax > 2:
+		# binary search type thing
+		imin = imax / 2
+		while imin < imax:
+			midpoint = imin / 2 + imax / 2
+			if os.path.exists(fn(midpoint)):
+				imin = midpoint + 1
+			else:
+				imax = midpoint
+		imax = imin
+		# off by one errors suck
+		# while os.path.exists(fn(imax)):
+		# 	imax += 1
+
+	im.save(fn(imax), "JPEG")
