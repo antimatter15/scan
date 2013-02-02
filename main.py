@@ -2,6 +2,7 @@ import serial
 import sane
 import time
 import os
+import numpy
 
 # Yar 'MERCA
 mm_per_in = 25.40005
@@ -40,5 +41,8 @@ while True:
 	date = time.strftime("%d %b")
 	if not os.path.exists(year):
 		os.makedirs(year)
-
+	narwhal = numpy.array(im.histogram())
+	mean_color = numpy.average(range(0, 256), weights = narwhal)
+	# find da stdev
+	
 	im.save(year + "/" + date, "JPEG")
