@@ -13,6 +13,7 @@ import os
 import numpy
 from PIL import Image, ImageFilter, ImageChops
 
+os.chdir(os.path.dirname(__file__))
 blank = Image.open("blank.jpg")
 blank.filter(ImageFilter.BLUR)
 
